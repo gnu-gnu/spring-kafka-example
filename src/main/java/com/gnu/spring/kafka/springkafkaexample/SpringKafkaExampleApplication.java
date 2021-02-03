@@ -6,6 +6,7 @@ import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.internals.AbstractCoordinator;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
@@ -55,8 +56,8 @@ public class SpringKafkaExampleApplication implements CommandLineRunner {
     public void run(String... args) {
         // kafkaStatus();
         produceForString("for-produce", "String Message");
-        produceForPojo("for-produce-pojo", new PojoMessage(1, "Pojo Message", true));
-        produceAndReply("for-reply", "Replying message");
+        // produceForPojo("for-produce-pojo", new PojoMessage(1, "Pojo Message", true));
+        // produceAndReply("for-reply", "Replying message");
     }
 
     private void produceForString(String topic, String msg) {
