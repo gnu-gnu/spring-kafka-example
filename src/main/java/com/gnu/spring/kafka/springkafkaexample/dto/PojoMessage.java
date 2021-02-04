@@ -1,6 +1,8 @@
 package com.gnu.spring.kafka.springkafkaexample.dto;
 
-public class PojoMessage {
+import java.io.Serializable;
+
+public class PojoMessage implements Serializable {
     private int id;
     private String msg;
     private boolean result;
