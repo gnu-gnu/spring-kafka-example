@@ -97,10 +97,21 @@ public class KafkaConfigurer {
     public KafkaTemplate<?, ?> pojoKafkaTemplate(ProducerListener<Object, Object> kafkaProducerListener, ObjectProvider<RecordMessageConverter> messageConverter) {
         Map<String, Object> defaultProperties = pf.getConfigurationProperties();
         LinkedHashMap<String, Object> configurationProperties = new LinkedHashMap<>(defaultProperties);
-        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);  // Produce를 위해 POJO를 JSON형식으로 변환하는 Serializer를 설정
-        configurationProperties.put(JsonSerializer.TYPE_MAPPINGS, "pojo:com.gnu.spring.kafka.springkafkaexample.dto.PojoMessage");
+        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
         DefaultKafkaProducerFactory<Object, Object> pojoPf = new DefaultKafkaProducerFactory<>(configurationProperties);
         KafkaTemplate<Object, Object> kafkaTemplate = new KafkaTemplate(pojoPf);
+        kafkaTemplate.setProducerListener(kafkaProducerListener);
+        return kafkaTemplate;
+    }
+
+    @Bean
+    public KafkaTemplate<?, ?> jsonKafkaTemplate(ProducerListener<Object, Object> kafkaProducerListener, ObjectProvider<RecordMessageConverter> messageConverter) {
+        Map<String, Object> defaultProperties = pf.getConfigurationProperties();
+        LinkedHashMap<String, Object> configurationProperties = new LinkedHashMap<>(defaultProperties);
+        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);  // Produce를 위해 POJO를 JSON형식으로 변환하는 Serializer를 설정
+        configurationProperties.put(JsonSerializer.TYPE_MAPPINGS, "pojo:com.gnu.spring.kafka.springkafkaexample.dto.PojoMessage");
+        DefaultKafkaProducerFactory<Object, Object> jsonPf = new DefaultKafkaProducerFactory<>(configurationProperties);
+        KafkaTemplate<Object, Object> kafkaTemplate = new KafkaTemplate(jsonPf);
         kafkaTemplate.setProducerListener(kafkaProducerListener);
         kafkaTemplate.setMessageConverter(new JsonMessageConverter());
         return kafkaTemplate;
@@ -147,16 +158,23 @@ public class KafkaConfigurer {
     @Bean
     ConcurrentKafkaListenerContainerFactory<?, ?> kafkaPojoListenerContainerFactory(ConcurrentKafkaListenerContainerFactoryConfigurer configurer) {
         Map<String, Object> consumerProperties = this.properties.buildConsumerProperties();
+        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, String.class);
+        DefaultKafkaConsumerFactory consumerFactory = new DefaultKafkaConsumerFactory(consumerProperties);
+        ConcurrentKafkaListenerContainerFactory<Object, Object> listenerFactory = new ConcurrentKafkaListenerContainerFactory();
+        configurer.configure(listenerFactory, consumerFactory);
+        listenerFactory.setMessageConverter(new StringJsonMessageConverter()); // Kakfa로 전달된 String(JSON format)을 POJO로 변환 수행할 수 있는 메시지 컨버터를 설정
+        return listenerFactory;
+    }
+
+    @Bean
+    ConcurrentKafkaListenerContainerFactory<?, ?> kafkaJsonListenerContainerFactory(ConcurrentKafkaListenerContainerFactoryConfigurer configurer) {
+        Map<String, Object> consumerProperties = this.properties.buildConsumerProperties();
         consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         consumerProperties.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         consumerProperties.put(JsonDeserializer.TYPE_MAPPINGS, "pojo:com.gnu.spring.kafka.springkafkaexample.dto.PojoMessage");
         DefaultKafkaConsumerFactory consumerFactory = new DefaultKafkaConsumerFactory(consumerProperties);
         ConcurrentKafkaListenerContainerFactory<Object, Object> listenerFactory = new ConcurrentKafkaListenerContainerFactory();
-        listenerFactory.setErrorHandler((ConsumerAwareErrorHandler) (thrownException, data, consumer) -> {
-            LOG.error("{}", thrownException.getMessage());
-        });
         configurer.configure(listenerFactory, consumerFactory);
-        // listenerFactory.setMessageConverter(new StringJsonMessageConverter()); // Kakfa로 전달된 String(JSON format)을 POJO로 변환 수행할 수 있는 메시지 컨버터를 설정
         return listenerFactory;
     }
 

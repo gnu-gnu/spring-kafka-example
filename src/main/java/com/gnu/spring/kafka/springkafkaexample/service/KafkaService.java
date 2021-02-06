@@ -27,7 +27,7 @@ public class KafkaService {
         LOG.info("String message delivered: {}", value);
     }
 
-    @KafkaListener(topics = POJO_TOPIC, groupId = POJO_CONSUMER_GROUP, containerFactory = POJO_CONTAINER_FACTORY)
+    @KafkaListener(topics = POJO_TOPIC, groupId = POJO_CONSUMER_GROUP, containerFactory = POJO_CONTAINER_FACTORY, id = "pojo_container")
     public void pojoConsumer(PojoMessage value) {
         LOG.info("Pojo message delivered: {}", value);
     }
