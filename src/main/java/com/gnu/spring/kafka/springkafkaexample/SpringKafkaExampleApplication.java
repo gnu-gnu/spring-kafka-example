@@ -29,7 +29,7 @@ public class SpringKafkaExampleApplication implements CommandLineRunner {
     }
 
     public void run(String... args) throws JsonProcessingException {
-        // kafkaStatus();
+        kafkaClient.kafkaStatus();
         // kafkaClient.produceForString("pojo-topic", "Message"+System.currentTimeMillis());
         // produceAndReply("for-reply", "Replying message");
 
