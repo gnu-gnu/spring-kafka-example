@@ -1,15 +1,9 @@
 package com.gnu.spring.kafka.springkafkaexample.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gnu.spring.kafka.springkafkaexample.service.KafkaHandlerService;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -23,19 +17,15 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.*;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
-import org.springframework.kafka.support.Acknowledgment;
-import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.support.ProducerListener;
-import org.springframework.kafka.support.converter.ByteArrayJsonMessageConverter;
 import org.springframework.kafka.support.converter.JsonMessageConverter;
 import org.springframework.kafka.support.converter.RecordMessageConverter;
 import org.springframework.kafka.support.converter.StringJsonMessageConverter;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.messaging.Message;
-import org.springframework.messaging.MessageHeaders;
+import org.springframework.util.backoff.FixedBackOff;
 
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -88,6 +78,9 @@ public class KafkaConfigurer {
 
     /**
      * application.properties에 설정한 기본 Serializer와 다른 Serializer를 사용하기 위해 별도로 설정한 KafkaTemplate
+     * POJO를 Produce하기 위해서는 JsonSerializer를 사용해야 한다.
+     * 이 때 Consumer가 StringDeserializer를 사용하면 Spring의 StirngJsonConverter를 사용하고
+     * Consumer가 Kafka의 JsonDeserializer를 사용하면 TrustedPackage를 지정 해 주어야 한다.
      *
      * @param kafkaProducerListener
      * @param messageConverter
@@ -97,7 +90,7 @@ public class KafkaConfigurer {
     public KafkaTemplate<?, ?> pojoKafkaTemplate(ProducerListener<Object, Object> kafkaProducerListener, ObjectProvider<RecordMessageConverter> messageConverter) {
         Map<String, Object> defaultProperties = pf.getConfigurationProperties();
         LinkedHashMap<String, Object> configurationProperties = new LinkedHashMap<>(defaultProperties);
-        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         DefaultKafkaProducerFactory<Object, Object> pojoPf = new DefaultKafkaProducerFactory<>(configurationProperties);
         KafkaTemplate<Object, Object> kafkaTemplate = new KafkaTemplate(pojoPf);
         kafkaTemplate.setProducerListener(kafkaProducerListener);
@@ -108,7 +101,7 @@ public class KafkaConfigurer {
     public KafkaTemplate<?, ?> jsonKafkaTemplate(ProducerListener<Object, Object> kafkaProducerListener, ObjectProvider<RecordMessageConverter> messageConverter) {
         Map<String, Object> defaultProperties = pf.getConfigurationProperties();
         LinkedHashMap<String, Object> configurationProperties = new LinkedHashMap<>(defaultProperties);
-        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);  // Produce를 위해 POJO를 JSON형식으로 변환하는 Serializer를 설정
+        configurationProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
         configurationProperties.put(JsonSerializer.TYPE_MAPPINGS, "pojo:com.gnu.spring.kafka.springkafkaexample.dto.PojoMessage");
         DefaultKafkaProducerFactory<Object, Object> jsonPf = new DefaultKafkaProducerFactory<>(configurationProperties);
         KafkaTemplate<Object, Object> kafkaTemplate = new KafkaTemplate(jsonPf);
@@ -158,11 +151,12 @@ public class KafkaConfigurer {
     @Bean
     ConcurrentKafkaListenerContainerFactory<?, ?> kafkaPojoListenerContainerFactory(ConcurrentKafkaListenerContainerFactoryConfigurer configurer) {
         Map<String, Object> consumerProperties = this.properties.buildConsumerProperties();
-        consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, String.class);
         DefaultKafkaConsumerFactory consumerFactory = new DefaultKafkaConsumerFactory(consumerProperties);
         ConcurrentKafkaListenerContainerFactory<Object, Object> listenerFactory = new ConcurrentKafkaListenerContainerFactory();
         configurer.configure(listenerFactory, consumerFactory);
         listenerFactory.setMessageConverter(new StringJsonMessageConverter()); // Kakfa로 전달된 String(JSON format)을 POJO로 변환 수행할 수 있는 메시지 컨버터를 설정
+        SeekToCurrentErrorHandler seekToCurrentErrorHandler = new SeekToCurrentErrorHandler(new FixedBackOff(0L, 10L));
+        listenerFactory.setErrorHandler(seekToCurrentErrorHandler);
         return listenerFactory;
     }
 
@@ -176,17 +170,5 @@ public class KafkaConfigurer {
         ConcurrentKafkaListenerContainerFactory<Object, Object> listenerFactory = new ConcurrentKafkaListenerContainerFactory();
         configurer.configure(listenerFactory, consumerFactory);
         return listenerFactory;
-    }
-
-    @Bean
-    public ConsumerAwareListenerErrorHandler listenErrorHandler() {
-        return (Message<?> m, ListenerExecutionFailedException e, Consumer<?, ?> c) -> {
-            MessageHeaders headers = m.getHeaders();
-            c.seek(new org.apache.kafka.common.TopicPartition(
-                            headers.get(KafkaHeaders.RECEIVED_TOPIC, String.class),
-                            headers.get(KafkaHeaders.RECEIVED_PARTITION_ID, Integer.class)),
-                    headers.get(KafkaHeaders.OFFSET, Long.class));
-            return null;
-        };
     }
 }

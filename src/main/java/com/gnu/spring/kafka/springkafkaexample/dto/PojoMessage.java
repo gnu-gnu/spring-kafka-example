@@ -3,11 +3,11 @@ package com.gnu.spring.kafka.springkafkaexample.dto;
 import java.io.Serializable;
 
 public class PojoMessage implements Serializable {
-    private int id;
+    private long id;
     private String msg;
     private boolean result;
 
-    public PojoMessage(int id, String msg, boolean result) {
+    public PojoMessage(long id, String msg, boolean result) {
         this.id = id;
         this.msg = msg;
         this.result = result;
@@ -15,11 +15,11 @@ public class PojoMessage implements Serializable {
 
     public PojoMessage() { }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 

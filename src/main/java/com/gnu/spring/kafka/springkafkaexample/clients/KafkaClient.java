@@ -6,7 +6,6 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ConsumerGroupListing;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.clients.admin.TopicListing;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.slf4j.Logger;
@@ -16,6 +15,7 @@ import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.RoutingKafkaTemplate;
 import org.springframework.kafka.requestreply.ReplyingKafkaTemplate;
+import org.springframework.kafka.requestreply.RequestReplyFuture;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
 import org.springframework.util.concurrent.ListenableFutureCallback;
@@ -60,13 +60,12 @@ public class KafkaClient {
                 String topic = metadata.topic();
                 long offset = metadata.offset();
                 int partition = metadata.partition();
-                LOG.info("-- String Produce result: Topic {}, Partition {}, Offset {}", topic, partition, offset);
+                LOG.info("\u001B[32mString Produce result: Topic {}, Partition {}, Offset {}", topic, partition, offset);
             }
         });
     }
 
     public void produceForPojo(String topic, PojoMessage msg) throws JsonProcessingException {
-
         pojoKafkaTemplate.send(topic, msg).addCallback(new ListenableFutureCallback<>() {
             @Override
             public void onFailure(Throwable throwable) {
@@ -79,55 +78,45 @@ public class KafkaClient {
                 String topic = metadata.topic();
                 long offset = metadata.offset();
                 int partition = metadata.partition();
-                LOG.info("-- Pojo Produce result: Topic {}, Partition {}, Offset {}", topic, partition, offset);
+                LOG.info("\u001B[32mPojo Produce result: Topic {}, Partition {}, Offset {}", topic, partition, offset);
             }
         });
     }
 
-    public void produceAndReply(String topic, String msg) {
+    public RequestReplyFuture<String, String, String> produceAndReply(String topic, String msg) {
         ProducerRecord<String, String> record = new ProducerRecord<>(topic, msg);
-        replyTemplate.sendAndReceive(record).addCallback(new ListenableFutureCallback<>() {
-            @Override
-            public void onFailure(Throwable throwable) {
-                throwable.getStackTrace();
-            }
-
-            @Override
-            public void onSuccess(ConsumerRecord<String, String> record) {
-                LOG.info("-- Response: {}", record.value());
-            }
-        });
+        return replyTemplate.sendAndReceive(record);
     }
 
     public void kafkaStatus() {
         try (AdminClient adminClient = AdminClient.create(kafkaAdmin.getConfigurationProperties())) {
             DescribeClusterResult cluster = adminClient.describeCluster();
             cluster.clusterId().whenComplete((id, t) -> {
-                LOG.info("-- Cluster Id: {}", id);
+                LOG.info("\u001B[32mCluster Id: {}", id);
             });
             cluster.nodes().whenComplete((nodes, t) -> {
                 nodes.forEach(node -> {
-                    LOG.info("-- Node: {}", node);
+                    LOG.info("\u001B[32mNode: {}", node);
                 });
             });
             cluster.controller().whenComplete((controller, t) -> {
-                LOG.info("-- Controller: {}", controller);
+                LOG.info("\u001B[32mController: {}", controller);
             });
             try {
                 Collection<TopicListing> topics = adminClient.listTopics().listings().get();
                 ArrayList<String> topicList = topics.stream().map(topic -> topic.name()).collect(Collectors.toCollection(ArrayList::new));
                 adminClient.describeTopics(topicList).all().whenComplete((topicDescs, t2) -> {
                     topicDescs.entrySet().forEach(topicDesc -> {
-                        LOG.info("-- Topic: {}", topicDesc.getValue());
+                        LOG.info("\u001B[32mTopic: {}", topicDesc.getValue());
                     });
                 });
 
                 Collection<ConsumerGroupListing> consumerGroups = adminClient.listConsumerGroups().all().get();
                 consumerGroups.forEach(group -> {
-                    LOG.info("-- ConsumerGroup: {}", group);
+                    LOG.info("\u001B[32mConsumerGroup: {}", group);
                     String groupId = group.groupId();
                     adminClient.listConsumerGroupOffsets(groupId).partitionsToOffsetAndMetadata().whenComplete(((metadataMap, throwable) -> {
-                        LOG.info("---- ConsumerGroup {} detail, Offset: {}", groupId, metadataMap);
+                        LOG.info("\u001B[32m  ConsumerGroup {} detail, Offset: {}", groupId, metadataMap);
                     }));
                 });
             } catch (InterruptedException e) {

@@ -16,27 +16,27 @@ public class KafkaProducerInterceptor implements ProducerInterceptor<String, Str
 
     @Override
     public ProducerRecord<String, String> onSend(ProducerRecord<String, String> record) {
-        LOG.info("-- Send: {}", record);
+        LOG.info("\u001B[32mSend: {}", record);
         record.headers().headers("kafka_correlationId").forEach(header->{
             String key = header.key();
             int correlationId = header.value().hashCode();
-            LOG.info("-- Produce {}: {}", key, correlationId);
+            LOG.info("\u001B[32mProduce {}: {}", key, correlationId);
         });
         return record;
     }
 
     @Override
     public void onAcknowledgement(RecordMetadata recordMetadata, Exception e) {
-        LOG.info("-- Topic {} Ack: Partition {}-Offset {}", recordMetadata.topic(), recordMetadata.partition(), recordMetadata.offset());
+        LOG.info("\u001B[32mTopic '{}' Ack: Partition {}-Offset {}", recordMetadata.topic(), recordMetadata.partition(), recordMetadata.offset());
     }
 
     @Override
     public void close() {
-        LOG.info("-- Close");
+        LOG.info("\u001B[32mClose");
     }
 
     @Override
     public void configure(Map<String, ?> map) {
-        LOG.info("-- Config: {}", map);
+        LOG.info("\u001B[32mConfig: {}", map);
     }
 }

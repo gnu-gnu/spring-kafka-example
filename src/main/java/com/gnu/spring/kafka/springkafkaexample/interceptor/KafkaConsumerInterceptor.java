@@ -18,11 +18,11 @@ public class KafkaConsumerInterceptor implements ConsumerInterceptor<String, Str
     @Override
     public ConsumerRecords<String, String> onConsume(ConsumerRecords<String, String> consumerRecords) {
         consumerRecords.forEach(record -> {
-            LOG.info("-- Consume: {}", record);
+            LOG.info("\u001B[32mConsume: {}", record);
             record.headers().headers("kafka_correlationId").forEach(header->{
                 String key = header.key();
                 int correlationId = header.value().hashCode();
-                LOG.info("-- Consume {}: {}", key, correlationId);
+                LOG.info("\u001B[32mConsume {}: {}", key, correlationId);
             });
         });
         return consumerRecords;
@@ -30,16 +30,16 @@ public class KafkaConsumerInterceptor implements ConsumerInterceptor<String, Str
 
     @Override
     public void onCommit(Map<TopicPartition, OffsetAndMetadata> map) {
-        LOG.info("-- Consumer commit: {}", map);
+        LOG.info("\u001B[32mConsumer commit: {}", map);
     }
 
     @Override
     public void close() {
-        LOG.info("-- Consumer close");
+        LOG.info("\u001B[32mConsumer close");
     }
 
     @Override
     public void configure(Map<String, ?> map) {
-        LOG.info("-- Conusumer config: {}", map);
+        LOG.info("\u001B[32mConusumer config: {}", map);
     }
 }

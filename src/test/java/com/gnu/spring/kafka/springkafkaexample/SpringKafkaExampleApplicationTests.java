@@ -26,7 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @SpringBootTest
-@EmbeddedKafka(topics = {KafkaService.POJO_TOPIC, KafkaService.REPLY_TOPIC, KafkaService.TOPIC}, brokerProperties = {"listeners=PLAINTEXT://127.0.0.1:9092"})
+@EmbeddedKafka(topics = {KafkaService.POJO_TOPIC, KafkaService.REPLY_TOPIC, KafkaService.STRING_TOPIC}, brokerProperties = {"listeners=PLAINTEXT://127.0.0.1:9092"})
 class SpringKafkaExampleApplicationTests {
     private static final Logger LOG = LoggerFactory.getLogger(SpringKafkaExampleApplicationTests.class);
 
@@ -51,11 +51,6 @@ class SpringKafkaExampleApplicationTests {
     private KafkaListenerEndpointRegistry registry;
 
     @Test
-    void produceForString() throws JsonProcessingException {
-        kafkaClient.produceForString("handler-topic-1", "This is String");
-    }
-
-    @Test
     void produceForPojo() throws JsonProcessingException, InterruptedException {
         MessageListenerContainer pojoListenerContainer = registry.getListenerContainer("pojo_container");
         pojoListenerContainer.stop();
@@ -68,6 +63,7 @@ class SpringKafkaExampleApplicationTests {
         });
         pojoListenerContainer.start();
         kafkaClient.produceForPojo(KafkaService.POJO_TOPIC, new PojoMessage(1, "Pojo Message", true));
+        kafkaClient.produceForString(KafkaService.POJO_TOPIC, "cause error");
         Assert.isTrue(latch.await(5L, TimeUnit.SECONDS), "POJO produce failed");
 
     }

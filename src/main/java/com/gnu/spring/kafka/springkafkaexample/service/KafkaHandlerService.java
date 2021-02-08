@@ -5,10 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaHandler;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.stereotype.Service;
 
-@Service
-@KafkaListener(topics = "handler-topic-1", groupId = "handler-group-1", containerFactory = "kafkaPojoListenerContainerFactory")
+//@KafkaListener(topics = "handler-topic-1", groupId = "handler-group-1", containerFactory = "kafkaPojoListenerContainerFactory")
 public class KafkaHandlerService {
     private static final Logger LOG = LoggerFactory.getLogger(KafkaHandlerService.class);
 
