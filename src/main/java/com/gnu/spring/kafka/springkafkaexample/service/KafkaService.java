@@ -21,16 +21,37 @@ public class KafkaService {
     public static final String POJO_TOPIC = "pojo-topic";
     public static final String REPLY_TOPIC = "reply-topic";
 
+    /**
+     * 
+     * String 으로 된 메시지를 Consume 하는 컨슈머
+     * 
+     * @param value
+     * @param record
+     */
     @KafkaListener(topics = STRING_TOPIC, groupId = CONSUMER_GROUP)
     public void consumer(String value, ConsumerRecord<String, String> record) {
         LOG.info("\u001B[32mString message delivered: {}", value);
     }
 
+    /**
+     * 
+     * 자바 객체로 된 메시지를  Consume하는 컨슈머
+     * 
+     * @param value
+     */
     @KafkaListener(topics = POJO_TOPIC, groupId = POJO_CONSUMER_GROUP, containerFactory = POJO_CONTAINER_FACTORY, id = "pojo_container", errorHandler = "listenErrorHandler")
     public void pojoConsumer(PojoMessage value) {
         LOG.info("\u001B[32mPojo message delivered: {}", value);
     }
 
+    /**
+     *
+     * 카프카를 요청-응답의 동기식 구조로 사용하기 위해서 @SendTo 애너테이션을 사용
+     *
+     * @param value
+     * @param record
+     * @return
+     */
     @KafkaListener(topics = REPLY_TOPIC, groupId = REPLY_CONSUMER_GROUP, errorHandler = "listenErrorHandler")
     @SendTo
     public String forReply(String value, ConsumerRecord<String, String> record) {

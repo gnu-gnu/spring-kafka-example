@@ -7,7 +7,6 @@ import com.gnu.spring.kafka.springkafkaexample.service.KafkaService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -30,10 +29,9 @@ public class SpringKafkaExampleApplication implements CommandLineRunner {
 
     public void run(String... args) throws JsonProcessingException {
         kafkaClient.kafkaStatus();
-        // kafkaClient.produceForString("pojo-topic", "Message"+System.currentTimeMillis());
-        // produceAndReply("for-reply", "Replying message");
-
+        // Java 객체로 된 메시지를 Kafka 로 전송
         kafkaClient.produceForPojo(KafkaService.POJO_TOPIC, new PojoMessage(System.currentTimeMillis(), "Pojo Message", true));
+
         kafkaClient.produceAndReply(KafkaService.REPLY_TOPIC, "Reply message").addCallback(new ListenableFutureCallback<>() {
             @Override
             public void onFailure(Throwable throwable) {
