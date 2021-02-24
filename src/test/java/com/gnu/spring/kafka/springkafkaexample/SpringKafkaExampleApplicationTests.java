@@ -63,6 +63,7 @@ class SpringKafkaExampleApplicationTests {
         });
         pojoListenerContainer.start();
         kafkaClient.produceForPojo(KafkaService.POJO_TOPIC, new PojoMessage(1, "Pojo Message", true));
+        // 이 부분은 에러가 나는 것을 테스트
         kafkaClient.produceForString(KafkaService.POJO_TOPIC, "cause error");
         Assert.isTrue(latch.await(5L, TimeUnit.SECONDS), "POJO produce failed");
 
